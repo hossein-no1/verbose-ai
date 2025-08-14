@@ -1,52 +1,101 @@
 package com.ai.verbose.ui.chat
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import ai.koog.prompt.dsl.prompt
+import ai.koog.prompt.executor.ollama.client.OllamaClient
+import ai.koog.prompt.llm.OllamaModels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.koin.core.component.KoinComponent
 
-private val mockAiResponse = listOf(
-    "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum cursus, nibh a feugiat pharetra, velit purus sodales urna, ut scelerisque turpis ligula nec nisi. Nullam sed neque id nulla fermentum fermentum vel vitae felis. Aenean tincidunt bibendum tellus in finibus. Nam auctor lectus sed diam sodales feugiat. Integer porttitor turpis a justo luctus, quis ornare purus consequat. Maecenas ullamcorper felis nec interdum viverra. Donec lacinia justo et urna convallis, ac venenatis mi ultricies. Sed tristique tellus in urna blandit, et vehicula sapien aliquam. Aliquam luctus justo eu magna aliquet ultricies. Duis cursus turpis nec fermentum vulputate.",
-    "Suspendisse potenti. Sed a urna at dui feugiat condimentum id sed purus. Donec vehicula, magna sed aliquet suscipit, erat orci vulputate justo, a rhoncus erat quam eget velit. Proin fermentum lectus in odio sollicitudin, nec hendrerit erat congue. Integer egestas quam sit amet ante volutpat vulputate. Nullam vehicula nisi et orci vehicula, id fermentum lacus iaculis. Sed nec orci nec metus efficitur consequat nec id nulla. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Fusce ut ante non nunc lacinia scelerisque. Nulla tincidunt libero non nisi venenatis, vel interdum enim scelerisque.",
-    "Quisque suscipit purus ut velit fringilla, eget viverra justo elementum. Praesent faucibus nulla vitae lectus volutpat, non feugiat sapien vehicula. Aenean lobortis ligula id risus bibendum, id vehicula nisi iaculis. Phasellus sed tortor vitae augue luctus maximus. Etiam scelerisque urna in tortor pharetra, a sodales libero elementum. Fusce ac libero sit amet neque dapibus egestas nec ac tortor. Sed at justo sit amet lectus sodales finibus. Nam fringilla dui sed odio gravida, a volutpat odio malesuada. Nullam dictum nisi eget arcu ultricies, id finibus dolor iaculis. Etiam sollicitudin dui sed eros suscipit, at feugiat enim aliquet."
-)
+class ChatViewModel : ViewModel(), KoinComponent {
 
-class ChatViewModel : ViewModel() {
+    private val prompt =
+        "You are a helpful AI assistant. Keep your responses concise and friendly. Your name is Verbose and you are is come from Kotlin World. Be funny and cool."
 
-    var inputText by mutableStateOf("")
-    var uiState by mutableStateOf(ChatUiState())
-        private set
+    private val llmModel = OllamaModels.Alibaba.QWEN_2_5_05B
 
-    fun submitInputText(onComplete: () -> Unit) {
+    private val ollamaClient = OllamaClient()
+
+    private val _uiState = MutableStateFlow(value = ChatUiState())
+    val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
+
+    fun submitInputText(query: String) {
         viewModelScope.launch {
-
-            val newList = uiState.chatList.toMutableList()
-            newList.add(ChatTextItem(text = inputText, type = ChatTextType.CLIENT))
-            uiState = uiState.copy(
-                chatList = newList,
-                submitTextState = SubmitTextState.PROCESSING
-            )
-            inputText = ""
-            getAiResponse()
-            onComplete()
-
+            val newList = _uiState.value.chatList.toMutableList()
+            newList.add(ChatTextItem(text = query, type = ChatTextType.CLIENT))
+            _uiState.update {
+                it.copy(
+                    chatList = newList,
+                    submitTextState = SubmitTextState.PROCESSING
+                )
+            }
+            getAiResponse(query = query)
         }
     }
 
-    private suspend fun getAiResponse() {
+    private suspend fun getAiResponse(query: String) = withContext(Dispatchers.IO) {
+        try {
+            val aiResponse = ollamaClient.execute(
+                prompt = prompt("sample-chat") {
+                    system(content = prompt)
+                    user(content = query)
+                },
+                model = llmModel
+            )
 
-        val newList = uiState.chatList.toMutableList()
-        delay((1000..5000).random().toLong())
+            val aiContent = extractContentFromResponse(aiResponse.toString())
+            val newList = _uiState.value.chatList.toMutableList()
+            newList.add(ChatTextItem(text = aiContent, type = ChatTextType.AI))
+            _uiState.update {
+                it.copy(
+                    chatList = newList,
+                    submitTextState = SubmitTextState.NORMAL
+                )
+            }
+        } catch (e: Exception) {
+            val aiContent =
+                extractContentFromResponse(response = "Sorry, I encountered an error: ${e.message}")
+            val newList = _uiState.value.chatList.toMutableList()
+            newList.add(ChatTextItem(text = aiContent, type = ChatTextType.AI))
+            _uiState.update {
+                it.copy(
+                    chatList = newList,
+                    submitTextState = SubmitTextState.NORMAL
+                )
+            }
+        }
+    }
 
-        newList.add(ChatTextItem(text = mockAiResponse.random(), type = ChatTextType.AI))
-        uiState = uiState.copy(
-            chatList = newList,
-            submitTextState = SubmitTextState.NORMAL
-        )
+    /**
+     * Extracts the content from the AI response string
+     * Expected format: "[Assistant(content=Hello! I am Qwen..., metaInfo=..., attachments=[], finishReason=null)]"
+     */
+    private fun extractContentFromResponse(response: String): String {
+        return try {
+            val contentPattern = Regex("content=([^,]+)")
+            val matchResult = contentPattern.find(response)
 
+            if (matchResult != null) {
+                matchResult.groupValues[1].trim()
+            } else {
+                val fallbackPattern = Regex("\\(([^)]+)\\)")
+                val fallbackMatch = fallbackPattern.find(response)
+                if (fallbackMatch != null) {
+                    fallbackMatch.groupValues[1].trim()
+                } else {
+                    response
+                }
+            }
+        } catch (_: Exception) {
+            response
+        }
     }
 
 }
