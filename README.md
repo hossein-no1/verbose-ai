@@ -285,8 +285,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <div align="center">
 
-**Made with ❤️ by [yourname](https://github.com/yourusername)**
-
 [Star on GitHub](https://github.com/yourusername/verbose) • [Report Bug](https://github.com/yourusername/verbose/issues) • [Request Feature](https://github.com/yourusername/verbose/issues)
 
 </div>
