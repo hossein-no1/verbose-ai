@@ -17,9 +17,9 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_11)
         }
     }
-    
+
     jvm()
-    
+
     sourceSets {
         androidMain.dependencies {
             implementation(compose.preview)
@@ -41,6 +41,7 @@ kotlin {
             api(libs.koin.core)
             implementation(libs.material.icons.extended)
             implementation(libs.koog.agents)
+            implementation(libs.prompt.executor.ollama.client)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
