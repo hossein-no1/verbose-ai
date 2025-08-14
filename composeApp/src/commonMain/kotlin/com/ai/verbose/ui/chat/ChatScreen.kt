@@ -31,10 +31,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,11 +54,9 @@ import com.ai.verbose.ui.theme.token.Gray20
 import com.ai.verbose.ui.theme.token.Gray80
 import com.ai.verbose.ui.theme.token.Gray85
 import com.ai.verbose.ui.theme.token.White
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import org.koin.compose.viewmodel.koinViewModel
 import verbose.composeapp.generated.resources.Res
 import verbose.composeapp.generated.resources.ic_clipboard
 import verbose.composeapp.generated.resources.poppins_bold
@@ -66,16 +65,28 @@ import verbose.composeapp.generated.resources.poppins_medium
 @Composable
 fun ChatScreen(
     modifier: Modifier = Modifier,
-    viewModel: ChatViewModel = koinViewModel<ChatViewModel>(),
+    uiState: ChatUiState,
+    onSubmitText: (query: String) -> Unit,
 ) {
 
+    var inputText by remember { mutableStateOf(value = "") }
+
     val chatListState = rememberLazyListState()
-    val scope = rememberCoroutineScope()
     var selectedChatIndex by remember { mutableIntStateOf(-1) }
 
-    Box(modifier = modifier.background(Black)) {
+    LaunchedEffect(uiState.chatList.size) {
+        if (uiState.chatList.isNotEmpty()) {
+            chatListState.animateScrollToItem(index = uiState.chatList.lastIndex)
+            selectedChatIndex = -1
+        }
 
-        if (viewModel.uiState.chatList.isEmpty())
+        if (uiState.submitTextState == SubmitTextState.NORMAL)
+            inputText = ""
+    }
+
+    Box(modifier = modifier.fillMaxSize().background(color = Black)) {
+
+        if (uiState.chatList.isEmpty())
             EmptyState(modifier = Modifier.align(Alignment.Center))
 
         Column(
@@ -97,20 +108,22 @@ fun ChatScreen(
                 horizontalAlignment = Alignment.End
             ) {
 
-                itemsIndexed(viewModel.uiState.chatList) { index, value ->
+                itemsIndexed(items = uiState.chatList) { index, value ->
                     if (value.type == ChatTextType.CLIENT)
                         ClientChatText(
                             text = value.text,
                             isClipboardVisible = selectedChatIndex == index,
                             onClipBoardClick = {
-                                selectedChatIndex = if (selectedChatIndex == index) -1 else index
+                                selectedChatIndex =
+                                    if (selectedChatIndex == index) -1 else index
                             })
                     else
                         AiChatText(
                             text = value.text,
                             isClipboardVisible = selectedChatIndex == index,
                             onClipBoardClick = {
-                                selectedChatIndex = if (selectedChatIndex == index) -1 else index
+                                selectedChatIndex =
+                                    if (selectedChatIndex == index) -1 else index
                             }
                         )
                 }
@@ -124,21 +137,17 @@ fun ChatScreen(
                     .padding(horizontal = 12.dp, vertical = 6.dp)
                     .offset(y = (-2).dp)
                     .background(shape = RoundedCornerShape(36.dp), color = Gray80),
-                inputText = viewModel.inputText,
-                submitTextState = viewModel.uiState.submitTextState,
+                inputText = inputText,
+                isEnabled = uiState.submitTextState == SubmitTextState.NORMAL,
+                submitTextState = uiState.submitTextState,
                 onSubmitClick = {
-                    if (viewModel.inputText.isNotEmpty() && viewModel.uiState.submitTextState == SubmitTextState.NORMAL) {
-                        viewModel.submitInputText {
-                            scope.launch {
-                                chatListState.animateScrollToItem(index = viewModel.uiState.chatList.lastIndex)
-                                selectedChatIndex = -1
-                            }
-                        }
+                    if (inputText.isNotEmpty() && uiState.submitTextState == SubmitTextState.NORMAL) {
+                        onSubmitText(inputText)
                     }
                 },
                 onValueChange = { value ->
-                    if (viewModel.uiState.submitTextState == SubmitTextState.NORMAL) {
-                        viewModel.inputText = value
+                    if (uiState.submitTextState == SubmitTextState.NORMAL) {
+                        inputText = value
                     }
                 }
             )
@@ -152,6 +161,7 @@ fun ChatScreen(
 private fun Footer(
     modifier: Modifier = Modifier,
     inputText: String,
+    isEnabled: Boolean = true,
     submitTextState: SubmitTextState,
     onSubmitClick: () -> Unit,
     onValueChange: (value: String) -> Unit,
@@ -170,6 +180,7 @@ private fun Footer(
             TextField(
                 modifier = Modifier.weight(.9F),
                 value = inputText,
+                enabled = isEnabled,
                 onValueChange = {
                     onValueChange(it)
                 },
@@ -189,6 +200,8 @@ private fun Footer(
                     focusedTextColor = White,
                     cursorColor = White,
                     focusedPlaceholderColor = Gray20,
+                    disabledTextColor = White.copy(alpha = .5F),
+                    disabledContainerColor = Color.Transparent,
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
                     focusedIndicatorColor = Color.Transparent,
@@ -407,6 +420,9 @@ fun EmptyState(modifier: Modifier = Modifier) {
 @Composable
 fun ScreenChantPreview() {
     VerboseTheme {
-        ChatScreen()
+        ChatScreen(
+            uiState = ChatUiState(),
+            onSubmitText = { _ -> }
+        )
     }
 }
