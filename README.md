@@ -29,7 +29,6 @@
 ## 📱 Screenshots
 
 <div align="center">
-  <img src="docs/screenshots/android-chat.png" alt="Android Chat Interface" width="300"/>
   <img src="docs/screenshots/desktop-chat.png" alt="Desktop Chat Interface" width="400"/>
 </div>
 
@@ -286,7 +285,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <div align="center">
 
-**Made with ❤️ by the Verbose Team**
+**Made with ❤️ by [yourname](https://github.com/yourusername)**
 
 [Star on GitHub](https://github.com/yourusername/verbose) • [Report Bug](https://github.com/yourusername/verbose/issues) • [Request Feature](https://github.com/yourusername/verbose/issues)
 
