@@ -32,8 +32,6 @@
   <img src="docs/screenshots/desktop-chat.png" alt="Desktop Chat Interface" width="400"/>
 </div>
 
-*Screenshots coming soon - contribute yours!*
-
 ## 🛠️ Setup
 
 ### Prerequisites
@@ -45,7 +43,7 @@
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/verbose.git
+git clone https://github.com/hossein-no1/verbose.git
 cd verbose
 ```
 
@@ -277,14 +275,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/verbose/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/verbose/discussions)
-- **Wiki**: [Project Wiki](https://github.com/yourusername/verbose/wiki)
+- **Issues**: [GitHub Issues](https://github.com/hossein-no1/verbose-ai/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/hossein-no1/verbose-ai/discussions)
+- **Wiki**: [Project Wiki](https://github.com/hossein-no1/verbose-ai/wiki)
 
 ---
 
 <div align="center">
 
-[Star on GitHub](https://github.com/yourusername/verbose) • [Report Bug](https://github.com/yourusername/verbose/issues) • [Request Feature](https://github.com/yourusername/verbose/issues)
+[Star on GitHub](https://github.com/hossein-no1/verbose-ai) • [Report Bug](https://github.com/hossein-no1/verbose-ai/issues) • [Request Feature]([https://github.com/yourusername/verbose](https://github.com/hossein-no1/verbose-ai)/issues)
 
 </div>
